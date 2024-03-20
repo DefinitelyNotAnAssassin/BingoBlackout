@@ -73,7 +73,7 @@ class BingoBoard(tk.Frame):
             self.loadImages()
         else:
             self.top_frame.btnStart["text"] = "START"
-            self.after_cancel(self.reload_images_again)
+            
             for label in self.imageLabels:
                 label.destroy()
             self.imageLabels = []
@@ -116,7 +116,7 @@ class BingoBoard(tk.Frame):
             self.numberOfImage = 150
 
             animalImages = poppedImages + animalImages
-            self.load_images_job = self.after(1000, self.loadImagesInBottomFrame, animalImages)
+            self.load_images_job = self.after(1000, app.loadImagesInBottomFrame, animalImages)
 
     def checkIfGameOver(self):
         for i in range(5):
@@ -127,47 +127,7 @@ class BingoBoard(tk.Frame):
                         return False
         return True
 
-    def loadImagesInBottomFrame(self, animalImages):
-        random.shuffle(animalImages)
-
-        if self.checkIfGameOver():
-            self.lblStatus.config(text="Game Over")
-            self.after_cancel(self.reload_images_again)
-            return
-
-        if not animalImages:
-            return
-        if self.numberOfImage == 0:
-            return
-        selected_image = animalImages.pop(0)
-        if len(self.imageLabels) >= 5:
-            label_to_overwrite = self.imageLabels.pop(0)
-            label_to_overwrite.config(image=selected_image)
-            label_to_overwrite.image = selected_image
-            self.imageLabels.append(label_to_overwrite)
-        else:
-            label = tk.Label(self.bottomFrame, image=selected_image)
-            label.image = selected_image
-            self.imageLabels.append(label)
-
-        for i, label in enumerate(self.imageLabels):
-            label.grid(row=0, column=i + 2)  
-  
-        for i in range(5):
-            for j in range(5):
-                if self.middleFrame.grid_slaves(row=i, column=j):
-                    label_on_board = self.middleFrame.grid_slaves(row=i, column=j)[0]
-                    if str(label_on_board.image) == str(selected_image):
-                        label_on_board.config(bg="red")
-        self.numberOfImage -= 1
-        print()
-        self.lblStatus.config(text=f"Status: 150 left")
-
-        if len(self.imageLabels) < 5:
-            self.reload_images_again = self.after(1000, self.loadImagesInBottomFrame, animalImages)
-        else:
-            self.reload_images_again = self.after(1000, self.loadImagesInBottomFrame, animalImages + [selected_image])
-
+   
 
 class BingoGame(tk.Tk):
     def __init__(self):
@@ -179,6 +139,43 @@ class BingoGame(tk.Tk):
         self.top_frame.pack(fill=tk.X)
 
         self.boards = []
+    def loadImagesInBottomFrame(self, animalImages):
+        random.shuffle(animalImages)
+
+        for board in self.boards:
+            if board.checkIfGameOver():
+                board.lblStatus.config(text="Game Over")
+                return
+            else: 
+                selected_image = animalImages.pop(0)
+                if len(board.imageLabels) >= 5:
+                    label_to_overwrite = board.imageLabels.pop(0)
+                    label_to_overwrite.config(image=selected_image)
+                    label_to_overwrite.image = selected_image
+                    board.imageLabels.append(label_to_overwrite)
+                else:
+                    label = tk.Label(board.bottomFrame, image=selected_image)
+                    label.image = selected_image
+                    board.imageLabels.append(label)
+
+                for i, label in enumerate(board.imageLabels):
+                    label.grid(row=0, column=i + 2)  
+        
+                for i in range(5):
+                    for j in range(5):
+                        if board.middleFrame.grid_slaves(row=i, column=j):
+                            label_on_board = board.middleFrame.grid_slaves(row=i, column=j)[0]
+                            if str(label_on_board.image) == str(selected_image):
+                                label_on_board.config(bg="red")
+                board.numberOfImage -= 1
+                print()
+                board.lblStatus.config(text=f"Status: {board.numberOfImage} left")
+
+                if len(board.imageLabels) < 5:
+                    self.reload_images_again = board.after(1000, self.loadImagesInBottomFrame, animalImages)
+                else:
+                    self.reload_images_again = board.after(1000, self.loadImagesInBottomFrame, animalImages + [selected_image])
+
 
     def start_all(self, num_boards):
         # Remove old boards
@@ -192,6 +189,7 @@ class BingoGame(tk.Tk):
             board.pack(side=tk.LEFT, padx=10)
             
         for board in self.boards:
+            print("Starting the Game...")
             board.startGame()
 app = BingoGame()
 app.mainloop()
